@@ -1,0 +1,34 @@
+name: RUM - Rust Userstyle Manager
+version: "0.1.0"
+author: Christian Dürr <contact@christianduerr.com>
+about: A userstyle manager for Firefox that uses the userContent.css
+args:
+subcommands:
+    - add:
+        about: Add a new Style
+        args:
+            - STYLE:
+                help: Add a style using a local path or URL
+                required: true
+                multiple: true
+    - list:
+        about: List all installed styles
+    - update:
+        about: Update styles
+        args:
+            - silent:
+                short: s
+                long: short
+                help: Do not ask if a style should be updated
+            - edit:
+                help: Modify the settings of a style
+                requires: STYLE
+            - STYLE:
+                help: The id or name of the style you want to update
+                conflicts_with: silent
+    - remove:
+        about: Remove a style
+        args:
+            - STYLE:
+                help: The id or name of the style you want to remove
+                required: true
