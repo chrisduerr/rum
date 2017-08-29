@@ -22,6 +22,11 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
+// Add a single style to config and userContent
+// TODO: Add domain as option for local and remote
+// FIXME: For userstyle it might be possible to use the style object
+// FIXME: So css() only overwrites the css of the style object
+// FIXME: This makes getting settings and domain easier
 fn add_style(uri: &str) -> Result<()> {
     // Get css and settings
     let stdin = io::stdin();

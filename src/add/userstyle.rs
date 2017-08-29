@@ -3,6 +3,11 @@ use std::io::{self, BufRead, Write};
 use std::collections::HashMap;
 use userstyles;
 use errors::*;
+use std::fs;
+use base64;
+
+// Directory where base64 images will be saved
+const TMP_DIR: &str = "/tmp/rum/";
 
 // Get the css and settings of a style
 pub fn css<T: BufRead>(id: &str, input: &mut T) -> Result<(String, HashMap<String, String>)> {
@@ -17,18 +22,41 @@ pub fn css<T: BufRead>(id: &str, input: &mut T) -> Result<(String, HashMap<Strin
     Ok((style.get_css(Some(&mut map)), map))
 }
 
-fn style_options(setting: &StyleSetting, label_val: bool) -> Vec<String> {
+// Get the human-readable option labels
+fn style_options(setting: &StyleSetting) -> Vec<String> {
     let mut options = Vec::new();
     for option in &setting.style_setting_options {
-        if label_val {
-            options.push(option.value.clone());
-        } else {
-            options.push(option.label.clone());
-        }
+        match &*setting.setting_type {
+            "text" | "color" => options.push(option.value.clone()),
+            "image" => {
+                let base64_start = "data:image/png;base64,";
+                if option.value.starts_with(base64_start) {
+                    // Display either URL or label and temp directory
+                    if let Ok(image_data) = base64::decode(&option.value[base64_start.len()..]) {
+                        let path = [TMP_DIR, &option.label].concat();
+                        write_tmp_image(&image_data, &path);
+                        options.push(format!("{} ({})", option.label, path));
+                    } else {
+                        options.push(option.value.clone());
+                    }
+                } else {
+                    options.push(option.value.clone());
+                }
+            }
+            _ => options.push(option.label.clone()),
+        };
     }
     options
 }
 
+// Write an image to the temporary directory
+fn write_tmp_image(data: &[u8], path: &str) {
+    if fs::create_dir_all(TMP_DIR).is_ok() {
+        let _ = fs::File::create(path).and_then(|mut f| f.write_all(data));
+    }
+}
+
+// Get the default style option
 fn style_default(setting: &StyleSetting) -> usize {
     for (i, option) in setting.style_setting_options.iter().enumerate() {
         if option.default {
@@ -38,6 +66,8 @@ fn style_default(setting: &StyleSetting) -> usize {
     0
 }
 
+// Display all the available options to CLI
+// Also indicates the default value
 fn display_options(options: &[String], default: usize, show_custom: bool) {
     for (i, option) in options.iter().enumerate() {
         println!("    ({}) {}", i, option);
@@ -51,15 +81,12 @@ fn display_options(options: &[String], default: usize, show_custom: bool) {
     let _ = io::stdout().flush();
 }
 
+// Ask users about settings he wants to change
 fn settings<T: BufRead>(style: &Style, mut input: T) -> Result<HashMap<String, String>> {
     let mut map = HashMap::new();
     for setting in &style.style_settings {
         let allow_custom = !(setting.setting_type == "dropdown");
-        let label_val = match &*setting.setting_type {
-            "color" | "text" => true,
-            _ => false,
-        };
-        let style_options = style_options(setting, label_val);
+        let style_options = style_options(setting);
         let style_default = style_default(setting);
 
         println!("\n[{}] {}:", setting.setting_type, setting.label);
@@ -77,6 +104,7 @@ fn settings<T: BufRead>(style: &Style, mut input: T) -> Result<HashMap<String, S
     Ok(map)
 }
 
+// Read the user's selection about a custom option for image/text/color
 fn read_custom_setting<T: BufRead>(input: &mut T) -> String {
     print!("[custom] > ");
     let _ = io::stdout().flush();
@@ -92,6 +120,7 @@ fn read_custom_setting<T: BufRead>(input: &mut T) -> String {
     }
 }
 
+// Read the user's selection about the option he wants to select
 fn read_user_choice<T: BufRead>(
     allow_custom: bool,
     mut allowed_max: usize,
@@ -192,26 +221,28 @@ fn css__with_allo_style_id_default_settings__settings_hashmap() {
 
 #[test]
 #[allow(non_snake_case)]
-fn style_options__with_single_label_and_labelval_false__return_single_label() {
+fn style_options__with_label_and_type_dropdown__returns_label() {
     let mut option = StyleSettingOption::default();
     option.label = String::from("foobar");
     let mut setting = StyleSetting::default();
+    setting.setting_type = String::from("dropdown");
     setting.style_setting_options = vec![option];
 
-    let options = style_options(&setting, false);
+    let options = style_options(&setting);
 
     assert_eq!(options[0], "foobar");
 }
 
 #[test]
 #[allow(non_snake_case)]
-fn style_options__with_single_value_and_labelval_true__return_single_label() {
+fn style_options__with_value_and_type_text__return_value() {
     let mut option = StyleSettingOption::default();
     option.value = String::from("foobar2");
     let mut setting = StyleSetting::default();
+    setting.setting_type = String::from("text");
     setting.style_setting_options = vec![option];
 
-    let options = style_options(&setting, true);
+    let options = style_options(&setting);
 
     assert_eq!(options[0], "foobar2");
 }
