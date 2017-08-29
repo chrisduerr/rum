@@ -26,6 +26,7 @@ pub fn style<T: BufRead>(userstyle_id: &str, id: i32, input: &mut T) -> Result<c
     Ok(config::Style {
         id,
         domain: None,
+        name: style.name,
         style_type: config::StyleType::Userstyle,
         settings: map,
         css
@@ -155,7 +156,6 @@ fn read_user_choice<T: BufRead>(
                 }
             }
         }
-
 
         println!("Invalid input. Please try again.");
         print!(" > ");

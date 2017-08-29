@@ -53,12 +53,13 @@ impl Config {
 
 #[derive(Serialize, Deserialize)]
 pub struct Style {
-    pub id: i32,
-    pub domain: Option<String>,
-    pub style_type: StyleType,
-    pub settings: HashMap<String, String>,
     #[serde(skip_serializing, skip_deserializing)]
     pub css: String,
+    pub id: i32,
+    pub name: String,
+    pub style_type: StyleType,
+    pub domain: Option<String>,
+    pub settings: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -278,6 +279,7 @@ fn next_style_id__with_two_styles__returns_minimal_id() {
     let style_one = Style {
         id: 0,
         domain: None,
+        name: String::new(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
         css: String::new()
@@ -285,6 +287,7 @@ fn next_style_id__with_two_styles__returns_minimal_id() {
     let style_two = Style {
         id: 2,
         domain: None,
+        name: String::new(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
         css: String::new()

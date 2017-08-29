@@ -14,7 +14,9 @@ extern crate toml;
 extern crate userstyles;
 
 mod add;
+mod list;
 mod config;
+mod userstyle;
 mod errors {
     error_chain!{
         foreign_links {
@@ -43,7 +45,7 @@ fn run() -> Result<()> {
     if let Some(subcommand) = matches.subcommand_name() {
         match subcommand {
             "add" => add::run(matches.subcommand_matches("add").unwrap())?,
-            "list" => unimplemented!(),
+            "list" => list::run()?,
             "remove" => unimplemented!(),
             "update" => unimplemented!(),
             _ => (),

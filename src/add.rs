@@ -1,11 +1,10 @@
-mod userstyle;
-
 use std::io::{self, BufRead, Read, Write};
 use config::{Config, Style, StyleType};
 use std::fs::{File, OpenOptions};
 use std::collections::HashMap;
 use clap::ArgMatches;
 use errors::*;
+use userstyle;
 use reqwest;
 
 pub fn run(matches: &ArgMatches) -> Result<()> {
@@ -60,6 +59,30 @@ fn add_style(uri: &str) -> Result<()> {
     Ok(())
 }
 
+// Read any text input from the user
+// Loops untile input is valid
+fn read_text<T: BufRead>(text: &str, input: &mut T) -> String {
+    print!("{}", text);
+    let _ = io::stdout().flush();
+
+    loop {
+        let mut choice = String::new();
+        if input.read_line(&mut choice).is_err() {
+            println!("Invalid input. Please try again.");
+            print!(" > ");
+            let _ = io::stdout().flush();
+        } else {
+            choice = choice.trim().to_owned();
+            return choice;
+        }
+    }
+}
+
+// Get the name for a style from the user
+fn read_name<T: BufRead>(input: &mut T) -> String {
+    read_text("Please select a name for this style:\n > ", input)
+}
+
 // Get the domain a style should apply to
 fn read_domain<T: BufRead>(input: &mut T) -> Option<String> {
     println!("Do you want to add a domain?");
@@ -74,30 +97,20 @@ fn read_domain<T: BufRead>(input: &mut T) -> Option<String> {
     }
 
     // Ask for the domain name that should be selected
-    println!("Please select a target domain:");
-    println!("Example: 'domain(\"kernel.org\")'");
-    print!(" > ");
-    let _ = io::stdout().flush();
-
-    loop {
-        let mut choice = String::new();
-        if input.read_line(&mut choice).is_err() {
-            println!("Invalid input. Please try again");
-        } else {
-            choice = choice.trim().to_owned();
-            return Some(choice);
-        }
-    }
+    let helptext = "Please select a target domain:\nExample: 'domain(\"kernel.org\")'\n > ";
+    Some(read_text(helptext, input))
 }
 
 // Load a local style
 fn local_style<T: BufRead>(path: &str, id: i32, input: &mut T) -> Result<Style> {
     let mut css = String::new();
     File::open(path)?.read_to_string(&mut css)?;
+    let name = read_name(input);
     let domain = read_domain(input);
 
     Ok(Style {
         id,
+        name,
         domain,
         style_type: StyleType::Local,
         settings: HashMap::new(),
@@ -109,10 +122,12 @@ fn local_style<T: BufRead>(path: &str, id: i32, input: &mut T) -> Result<Style> 
 fn remote_style<T: BufRead>(url: &str, id: i32, input: &mut T) -> Result<Style> {
     let mut css = String::new();
     reqwest::get(url)?.read_to_string(&mut css)?;
+    let name = read_name(input);
     let domain = read_domain(input);
 
     Ok(Style {
         id,
+        name,
         domain,
         style_type: StyleType::Remote,
         settings: HashMap::new(),
@@ -142,4 +157,14 @@ fn read_domain__with_add_domain_false__returns_none() {
     let result = read_domain(&mut cursor);
 
     assert_eq!(result, None);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn read_text__with_invalid_bytes__return_next_valid_input() {
+    let mut cursor = io::Cursor::new(&[255, 10, 98]);
+
+    let result = read_text("", &mut cursor);
+
+    assert_eq!(result, "b");
 }
