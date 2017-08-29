@@ -4,6 +4,19 @@ use std::collections::HashMap;
 use userstyles;
 use errors::*;
 
+// Get the css and settings of a style
+pub fn css<T: BufRead>(id: &str, input: &mut T) -> Result<(String, HashMap<String, String>)> {
+    // Send Request for Style
+    let id = u32::from_str_radix(id, 10)?;
+    let style = userstyles::get_style(id)?;
+
+    // Get custom settings
+    let mut map = settings(&style, input)?;
+
+    // Return style with custom css
+    Ok((style.get_css(Some(&mut map)), map))
+}
+
 fn style_options(setting: &StyleSetting, label_val: bool) -> Vec<String> {
     let mut options = Vec::new();
     for option in &setting.style_setting_options {
@@ -35,17 +48,7 @@ fn display_options(options: &[String], default: usize, show_custom: bool) {
     }
 
     print!("[Default {}] > ", default);
-}
-
-fn css<T: BufRead>(id: &str, input: &mut T) -> Result<String> {
-    // Send Request for Style
-    let id = u32::from_str_radix(id, 10)?;
-    let style = userstyles::get_style(id)?;
-
-    // Get custom settings
-    let map = settings(&style, input)?;
-
-    Ok(style.get_css(Some(map)))
+    let _ = io::stdout().flush();
 }
 
 fn settings<T: BufRead>(style: &Style, mut input: T) -> Result<HashMap<String, String>> {
@@ -59,6 +62,7 @@ fn settings<T: BufRead>(style: &Style, mut input: T) -> Result<HashMap<String, S
         let style_options = style_options(setting, label_val);
         let style_default = style_default(setting);
 
+        println!("\n[{}] {}:", setting.setting_type, setting.label);
         display_options(&style_options, style_default, allow_custom);
         let choice = read_user_choice(allow_custom, style_options.len(), style_default, &mut input);
 
@@ -74,6 +78,9 @@ fn settings<T: BufRead>(style: &Style, mut input: T) -> Result<HashMap<String, S
 }
 
 fn read_custom_setting<T: BufRead>(input: &mut T) -> String {
+    print!("[custom] > ");
+    let _ = io::stdout().flush();
+
     loop {
         let mut choice = String::new();
         if input.read_line(&mut choice).is_err() {
@@ -91,6 +98,8 @@ fn read_user_choice<T: BufRead>(
     default: usize,
     input: &mut T,
 ) -> usize {
+    let _ = io::stdout().flush();
+
     if !allow_custom {
         allowed_max -= 1;
     }
@@ -130,7 +139,7 @@ fn css__with_demo_style_id__returns_demostyle() {
 
     let css = css(url, &mut cursor).unwrap();
 
-    assert_eq!(css, "*{ color: red !important; }");
+    assert_eq!(css.0, "*{ color: red !important; }");
 }
 
 #[test]
@@ -141,7 +150,7 @@ fn css__with_allo_style_id_default_settings__css_contains_default_color() {
 
     let css = css(url, &mut cursor).unwrap();
 
-    assert!(css.contains("#0F9D58"));
+    assert!(css.0.contains("#0F9D58"));
 }
 
 #[test]
@@ -152,7 +161,33 @@ fn css__with_allo_style_id_custom_color_setting__css_contains_custom_color() {
 
     let css = css(url, &mut cursor).unwrap();
 
-    assert!(css.contains("#ff00ff"));
+    assert!(css.0.contains("#ff00ff"));
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn css__with_demo_style_id__returns_empty_settings() {
+    let url = "1";
+    let mut cursor = io::Cursor::new(b"");
+
+    let css = css(url, &mut cursor).unwrap();
+
+    assert_eq!(css.1.len(), 0);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn css__with_allo_style_id_default_settings__settings_hashmap() {
+    let url = "146771";
+    let mut cursor = io::Cursor::new(b"");
+
+    let css = css(url, &mut cursor).unwrap();
+
+    assert_eq!(css.1.get("ACCENTCOLOR").unwrap(), "#0F9D58");
+    assert_eq!(
+        css.1.get("CONVOBG").unwrap(),
+        "    background-image:  none !important;"
+    );
 }
 
 #[test]
@@ -292,4 +327,3 @@ fn read_user_choice__with_empty_input__returns_default() {
 
     assert_eq!(result, 0);
 }
-

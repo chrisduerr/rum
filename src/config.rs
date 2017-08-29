@@ -1,4 +1,5 @@
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::fs::File;
 use errors::*;
@@ -8,9 +9,9 @@ use toml;
 const CONFIG_PATH: &str = ".config/rum.toml";
 
 #[derive(Serialize, Deserialize)]
-struct Config {
-    user_content: String,
-    styles: Vec<Style>,
+pub struct Config {
+    pub user_content: String,
+    pub styles: Vec<Style>,
 }
 
 impl Config {
@@ -20,14 +21,49 @@ impl Config {
             styles: Vec::new(),
         }
     }
+
+    pub fn next_style_id(&self) -> i32 {
+        let mut ids: Vec<i32> = self.styles.iter().map(|s| s.id).collect();
+        ids.sort_by(|a, b| a.cmp(b));
+        let mut id = 0;
+        for i in ids {
+            if i != id {
+                return id;
+            }
+            id += 1;
+        }
+        id
+    }
+
+    pub fn load() -> Result<Config> {
+        let path = get_config_path()?;
+        let mut content = String::new();
+        File::open(path)?.read_to_string(&mut content)?;
+        Ok(toml::from_str::<Config>(&content)?)
+    }
+
+    pub fn write(&self) -> Result<()> {
+        let output = toml::to_string(self)?;
+        let config_path = get_config_path()?;
+        File::create(config_path)?.write_all(output.as_bytes())?;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize)]
-struct Style {
-    id: i32,
-    domain: String,
-    style_type: i32,
-    settings: Vec<(String, String)>,
+pub struct Style {
+    pub id: i32,
+    pub domain: String,
+    pub style_type: StyleType,
+    pub settings: HashMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum StyleType {
+    Userstyle,
+    Local,
+    Remote,
 }
 
 // Check if the config file exists
@@ -45,17 +81,21 @@ pub fn create_config() -> Result<()> {
     let profiles_ini = get_profiles_ini()?;
     let ini_buf = BufReader::new(File::open(&profiles_ini)?);
     let profiles = get_profiles(ini_buf);
+
     let stdin = io::stdin();
     let profile = get_profile_selection(&profiles, &mut stdin.lock())?;
 
-    // Create new config
-    let config = Config::new(profile);
-    let output = toml::to_string(&config)?;
+    let mut user_content = profiles_ini;
+    user_content.pop();
+    user_content.push(profile);
+    user_content.push("chrome/userContent.css");
+    let user_content = user_content.to_str().ok_or("UserContent path invalid.")?;
 
-    // Write config
-    let config_path = get_config_path()?;
-    let config_path = config_path.to_str().ok_or("Config not valid.")?;
-    File::create(config_path)?.write_all(output.as_bytes())?;
+    // Create new config
+    let config = Config::new(user_content.to_owned());
+    config.write()?;
+
+    println!("Successfully created new profile.\n");
 
     Ok(())
 }
@@ -230,3 +270,27 @@ fn get_profile_selection__with_empty_vec__returns_error() {
     assert!(result.is_err());
 }
 
+#[test]
+#[allow(non_snake_case)]
+fn next_style_id__with_two_styles__returns_minimal_id() {
+    let style_one = Style {
+        id: 0,
+        domain: String::new(),
+        style_type: StyleType::Local,
+        settings: HashMap::new(),
+    };
+    let style_two = Style {
+        id: 2,
+        domain: String::new(),
+        style_type: StyleType::Local,
+        settings: HashMap::new(),
+    };
+    let config = Config {
+        user_content: String::new(),
+        styles: vec![style_one, style_two],
+    };
+
+    let id = config.next_style_id();
+
+    assert_eq!(id, 1);
+}

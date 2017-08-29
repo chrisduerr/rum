@@ -1,15 +1,16 @@
 #![recursion_limit = "1024"]
 
 #[macro_use]
-extern crate serde_derive;
+extern crate clap;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
-extern crate clap;
+extern crate serde_derive;
 
-extern crate userstyles;
+extern crate reqwest;
 extern crate serde;
 extern crate toml;
+extern crate userstyles;
 
 mod add;
 mod config;
@@ -17,7 +18,9 @@ mod errors {
     error_chain!{
         foreign_links {
             IoError(::std::io::Error);
-            TomlError(::toml::ser::Error);
+            TomlError(::toml::de::Error);
+            ReqwestError(::reqwest::Error);
+            TomlSerError(::toml::ser::Error);
             ParseIntError(::std::num::ParseIntError);
         }
     }
@@ -50,4 +53,3 @@ fn run() -> Result<()> {
 
     Ok(())
 }
-
