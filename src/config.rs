@@ -54,9 +54,11 @@ impl Config {
 #[derive(Serialize, Deserialize)]
 pub struct Style {
     pub id: i32,
-    pub domain: String,
+    pub domain: Option<String>,
     pub style_type: StyleType,
     pub settings: HashMap<String, String>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub css: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -275,15 +277,17 @@ fn get_profile_selection__with_empty_vec__returns_error() {
 fn next_style_id__with_two_styles__returns_minimal_id() {
     let style_one = Style {
         id: 0,
-        domain: String::new(),
+        domain: None,
         style_type: StyleType::Local,
         settings: HashMap::new(),
+        css: String::new()
     };
     let style_two = Style {
         id: 2,
-        domain: String::new(),
+        domain: None,
         style_type: StyleType::Local,
         settings: HashMap::new(),
+        css: String::new()
     };
     let config = Config {
         user_content: String::new(),

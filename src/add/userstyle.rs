@@ -5,21 +5,31 @@ use userstyles;
 use errors::*;
 use std::fs;
 use base64;
+use config;
 
 // Directory where base64 images will be saved
 const TMP_DIR: &str = "/tmp/rum/";
 
 // Get the css and settings of a style
-pub fn css<T: BufRead>(id: &str, input: &mut T) -> Result<(String, HashMap<String, String>)> {
+pub fn style<T: BufRead>(userstyle_id: &str, id: i32, input: &mut T) -> Result<config::Style> {
     // Send Request for Style
-    let id = u32::from_str_radix(id, 10)?;
-    let style = userstyles::get_style(id)?;
+    let userstyle_id = u32::from_str_radix(userstyle_id, 10)?;
+    let style = userstyles::get_style(userstyle_id)?;
 
     // Get custom settings
     let mut map = settings(&style, input)?;
 
-    // Return style with custom css
-    Ok((style.get_css(Some(&mut map)), map))
+    // Get custom CSS
+    let css = style.get_css(Some(&mut map));
+
+    // Return style
+    Ok(config::Style {
+        id,
+        domain: None,
+        style_type: config::StyleType::Userstyle,
+        settings: map,
+        css
+    })
 }
 
 // Get the human-readable option labels
@@ -162,59 +172,81 @@ use userstyles::response::StyleSettingOption;
 
 #[test]
 #[allow(non_snake_case)]
-fn css__with_demo_style_id__returns_demostyle() {
+fn style__with_demo_style_id__returns_demostyle_css() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = css(url, &mut cursor).unwrap();
+    let css = style(url, 0, &mut cursor).unwrap().css;
 
-    assert_eq!(css.0, "*{ color: red !important; }");
+    assert_eq!(css, "*{ color: red !important; }");
 }
 
 #[test]
 #[allow(non_snake_case)]
-fn css__with_allo_style_id_default_settings__css_contains_default_color() {
+fn style__with_demo_style_id__returns_domain_none() {
+    let url = "1";
+    let mut cursor = io::Cursor::new(b"");
+
+    let domain = style(url, 0, &mut cursor).unwrap().domain;
+
+    assert_eq!(domain, None);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn style__with_demo_style_id_and_id_3__returns_id_3() {
+    let url = "1";
+    let mut cursor = io::Cursor::new(b"");
+
+    let id = style(url, 3, &mut cursor).unwrap().id;
+
+    assert_eq!(id, 3);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn style__with_allo_style_id_default_settings__css_contains_default_color() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = css(url, &mut cursor).unwrap();
+    let css = style(url, 0, &mut cursor).unwrap().css;
 
-    assert!(css.0.contains("#0F9D58"));
+    assert!(css.contains("#0F9D58"));
 }
 
 #[test]
 #[allow(non_snake_case)]
-fn css__with_allo_style_id_custom_color_setting__css_contains_custom_color() {
+fn style__with_allo_style_id_custom_color_setting__css_contains_custom_color() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"1\n#ff00ff\n\n");
 
-    let css = css(url, &mut cursor).unwrap();
+    let css = style(url, 0, &mut cursor).unwrap().css;
 
-    assert!(css.0.contains("#ff00ff"));
+    assert!(css.contains("#ff00ff"));
 }
 
 #[test]
 #[allow(non_snake_case)]
-fn css__with_demo_style_id__returns_empty_settings() {
+fn style__with_demo_style_id__returns_empty_settings() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = css(url, &mut cursor).unwrap();
+    let settings = style(url, 0, &mut cursor).unwrap().settings;
 
-    assert_eq!(css.1.len(), 0);
+    assert_eq!(settings.len(), 0);
 }
 
 #[test]
 #[allow(non_snake_case)]
-fn css__with_allo_style_id_default_settings__settings_hashmap() {
+fn style__with_allo_style_id_default_settings__settings_hashmap() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = css(url, &mut cursor).unwrap();
+    let settings = style(url, 0, &mut cursor).unwrap().settings;
 
-    assert_eq!(css.1.get("ACCENTCOLOR").unwrap(), "#0F9D58");
+    assert_eq!(settings.get("ACCENTCOLOR").unwrap(), "#0F9D58");
     assert_eq!(
-        css.1.get("CONVOBG").unwrap(),
+        settings.get("CONVOBG").unwrap(),
         "    background-image:  none !important;"
     );
 }
