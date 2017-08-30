@@ -15,6 +15,7 @@ extern crate userstyles;
 
 mod add;
 mod list;
+mod remove;
 mod config;
 mod userstyle;
 mod errors {
@@ -46,7 +47,7 @@ fn run() -> Result<()> {
         match subcommand {
             "add" => add::run(matches.subcommand_matches("add").unwrap())?,
             "list" => list::run()?,
-            "remove" => unimplemented!(),
+            "remove" => remove::run(matches.subcommand_matches("remove").unwrap())?,
             "update" => unimplemented!(),
             _ => (),
         };

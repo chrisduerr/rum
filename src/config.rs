@@ -7,6 +7,8 @@ use std::env;
 use toml;
 
 const CONFIG_PATH: &str = ".config/rum.toml";
+pub const RUM_START: &str = "\n/* RUM START {} */\n";
+pub const RUM_END: &str = "\n/* RUM END {} */\n";
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -48,6 +50,28 @@ impl Config {
         File::create(config_path)?.write_all(output.as_bytes())?;
 
         Ok(())
+    }
+
+    pub fn remove_style(&mut self, id: i32) {
+        self.styles.retain(|s| s.id != id);
+    }
+
+    pub fn style_id_by_name(&self, name: &str) -> Option<i32> {
+        for style in &self.styles {
+            if style.name == name {
+                return Some(style.id);
+            }
+        }
+        None
+    }
+
+    pub fn contains_style(&self, id: i32) -> bool {
+        for style in &self.styles {
+            if style.id == id {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -177,6 +201,18 @@ fn get_config_path() -> Result<PathBuf> {
 ////////// TESTS //////////
 
 
+#[cfg(test)]
+fn dummy_style() -> Style {
+    Style {
+        id: 0,
+        domain: None,
+        name: String::new(),
+        style_type: StyleType::Local,
+        settings: HashMap::new(),
+        css: String::new()
+    }
+}
+
 #[test]
 #[allow(non_snake_case)]
 fn get_profiles__with_one_profile__returns_profile_name() {
@@ -276,28 +312,87 @@ fn get_profile_selection__with_empty_vec__returns_error() {
 #[test]
 #[allow(non_snake_case)]
 fn next_style_id__with_two_styles__returns_minimal_id() {
-    let style_one = Style {
-        id: 0,
-        domain: None,
-        name: String::new(),
-        style_type: StyleType::Local,
-        settings: HashMap::new(),
-        css: String::new()
-    };
-    let style_two = Style {
-        id: 2,
-        domain: None,
-        name: String::new(),
-        style_type: StyleType::Local,
-        settings: HashMap::new(),
-        css: String::new()
-    };
+    let mut style_zero = dummy_style();
+    let mut style_two = dummy_style();
+    style_zero.id = 0;
+    style_two.id = 2;
     let config = Config {
         user_content: String::new(),
-        styles: vec![style_one, style_two],
+        styles: vec![style_zero, style_two],
     };
 
     let id = config.next_style_id();
 
     assert_eq!(id, 1);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn remove_style__with_id_one__removes_style_one() {
+    let mut style_zero = dummy_style();
+    let mut style_one = dummy_style();
+    let mut style_two = dummy_style();
+    style_zero.id = 0;
+    style_one.id = 1;
+    style_two.id = 2;
+    let mut config = Config {
+        user_content: String::new(),
+        styles: vec![style_zero, style_one, style_two],
+    };
+
+    config.remove_style(1);
+
+    assert_eq!(config.styles.len(), 2);
+    assert_eq!(config.styles[0].id, 0);
+    assert_eq!(config.styles[1].id, 2);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn style_id_by_name__with_name_one__returns_one() {
+    let mut style_zero = dummy_style();
+    let mut style_one = dummy_style();
+    let mut style_two = dummy_style();
+    style_zero.name = String::from("zero");
+    style_one.name = String::from("one");
+    style_two.name = String::from("two");
+    style_zero.id = 0;
+    style_one.id = 1;
+    style_two.id = 2;
+    let config = Config {
+        user_content: String::new(),
+        styles: vec![style_zero, style_one, style_two],
+    };
+
+    let id = config.style_id_by_name("one").unwrap();
+
+    assert_eq!(id, 1);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn contains_style__with_style__returns_true() {
+    let mut style_zero = dummy_style();
+    style_zero.id = 0;
+    let config = Config {
+        user_content: String::new(),
+        styles: vec![style_zero],
+    };
+
+    let contains_style = config.contains_style(0);
+
+    assert!(contains_style);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn contains_style__without_style__returns_false() {
+    let config = Config {
+        user_content: String::new(),
+        styles: vec![],
+    };
+
+    let contains_style = config.contains_style(0);
+
+    assert!(!contains_style);
 }

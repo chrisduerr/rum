@@ -1,5 +1,5 @@
+use config::{self, Config, Style, StyleType};
 use std::io::{self, BufRead, Read, Write};
-use config::{Config, Style, StyleType};
 use std::fs::{File, OpenOptions};
 use std::collections::HashMap;
 use clap::ArgMatches;
@@ -42,7 +42,7 @@ fn add_style(uri: &str) -> Result<()> {
     if let Some(ref domain) = style.domain {
         style.css = format!("@-moz-document {} {{\n{}\n}}", domain, style.css);
     }
-    let content = ["\n", &style.css].concat();
+    let content = [config::RUM_START, &style.css, config::RUM_END].concat();
 
     let mut openopts = OpenOptions::new();
     openopts.write(true).append(true).create(true);

@@ -8,7 +8,7 @@ subcommands:
         about: Add a new Style
         args:
             - STYLE:
-                help: Add a style using a local path or URL
+                help: Add style using path, URL or userstyles.org id
                 required: true
                 multiple: true
     - list:
@@ -30,5 +30,6 @@ subcommands:
         about: Remove a style
         args:
             - STYLE:
-                help: The id or name of the style you want to remove
+                help: The ids or names of the styles you want to remove
                 required: true
+                multiple: true
