@@ -18,18 +18,11 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn remove_style(style: &str) -> Result<()> {
+pub fn remove_style(style: &str) -> Result<()> {
     let mut config = config::Config::load()?;
 
     // Get the id of the style that will be removed
-    let id = if let Ok(id) = i32::from_str_radix(style, 10) {
-        if !config.contains_style(id) {
-            Err("Style id does not exist")?;
-        }
-        id
-    } else {
-        config.style_id_by_name(style).ok_or("Style name does not exist")?
-    };
+    let id = config.style_id_from_str(style).ok_or("Invalid style id or name")?;
 
     // Remove style from config
     config.remove_style(id);
@@ -37,10 +30,17 @@ fn remove_style(style: &str) -> Result<()> {
     // Save config
     config.write()?;
 
+    // Remove from userContent.css
+    remove_from_usercontent(id, &config.user_content)?;
+
+    Ok(())
+}
+
+fn remove_from_usercontent(id: i32, path: &str) -> Result<()> {
     // Open usercontent file
     let mut options = OpenOptions::new();
     options.write(true).read(true).truncate(true);
-    let mut file = options.open(config.user_content)?;
+    let mut file = options.open(path)?;
 
     // Remove style from userContent
     let mut user_content = String::new();

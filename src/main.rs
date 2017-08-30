@@ -17,6 +17,7 @@ mod add;
 mod list;
 mod remove;
 mod config;
+mod update;
 mod userstyle;
 mod errors {
     error_chain!{
@@ -48,7 +49,7 @@ fn run() -> Result<()> {
             "add" => add::run(matches.subcommand_matches("add").unwrap())?,
             "list" => list::run()?,
             "remove" => remove::run(matches.subcommand_matches("remove").unwrap())?,
-            "update" => unimplemented!(),
+            "update" => update::run(matches.subcommand_matches("update").unwrap())?,
             _ => (),
         };
     } else {

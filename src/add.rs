@@ -12,7 +12,7 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
 
     for uri in uris {
         println!("Adding '{}':", uri);
-        add_style(&uri)?;
+        add_style(&uri, None)?;
         println!("Added style '{}'\n", uri);
     }
 
@@ -22,7 +22,7 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
 }
 
 // Add a single style to config and userContent
-fn add_style(uri: &str) -> Result<()> {
+pub fn add_style(uri: &str, current_style: Option<Style>) -> Result<()> {
     // Get current config
     let mut config = Config::load()?;
 
@@ -31,11 +31,11 @@ fn add_style(uri: &str) -> Result<()> {
     // Get css and settings
     let stdin = io::stdin();
     let mut style = if uri.starts_with('/') {
-        local_style(uri, id, &mut stdin.lock())?
+        local_style(uri, id, current_style, &mut stdin.lock())?
     } else if uri.contains('.') {
-        remote_style(uri, id, &mut stdin.lock())?
+        remote_style(uri, id, current_style, &mut stdin.lock())?
     } else {
-        userstyle::style(uri, id, &mut stdin.lock())?
+        userstyle::style(uri, id, current_style, &mut stdin.lock())?
     };
 
     // Save new userContent
@@ -102,9 +102,17 @@ fn read_domain<T: BufRead>(input: &mut T) -> Option<String> {
 }
 
 // Load a local style
-fn local_style<T: BufRead>(path: &str, id: i32, input: &mut T) -> Result<Style> {
+fn local_style<T: BufRead>(path: &str, id: i32, style: Option<Style>, input: &mut T) -> Result<Style> {
     let mut css = String::new();
     File::open(path)?.read_to_string(&mut css)?;
+
+    // Update existing style
+    if let Some(mut style) = style {
+        style.css = css;
+        return Ok(style);
+    }
+
+    // Add new style
     let name = read_name(input);
     let domain = read_domain(input);
 
@@ -112,6 +120,7 @@ fn local_style<T: BufRead>(path: &str, id: i32, input: &mut T) -> Result<Style> 
         id,
         name,
         domain,
+        uri: path.to_owned(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
         css
@@ -119,9 +128,17 @@ fn local_style<T: BufRead>(path: &str, id: i32, input: &mut T) -> Result<Style> 
 }
 
 // Load a remote style
-fn remote_style<T: BufRead>(url: &str, id: i32, input: &mut T) -> Result<Style> {
+fn remote_style<T: BufRead>(url: &str, id: i32, style: Option<Style>, input: &mut T) -> Result<Style> {
     let mut css = String::new();
     reqwest::get(url)?.read_to_string(&mut css)?;
+
+    // Update existing style
+    if let Some(mut style) = style {
+        style.css = css;
+        return Ok(style);
+    }
+
+    // Add new style
     let name = read_name(input);
     let domain = read_domain(input);
 
@@ -129,6 +146,7 @@ fn remote_style<T: BufRead>(url: &str, id: i32, input: &mut T) -> Result<Style> 
         id,
         name,
         domain,
+        uri: url.to_owned(),
         style_type: StyleType::Remote,
         settings: HashMap::new(),
         css

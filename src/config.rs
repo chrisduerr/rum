@@ -56,13 +56,36 @@ impl Config {
         self.styles.retain(|s| s.id != id);
     }
 
-    pub fn style_id_by_name(&self, name: &str) -> Option<i32> {
-        for style in &self.styles {
-            if style.name == name {
-                return Some(style.id);
+    pub fn pop_style(&mut self, id: i32) -> Option<Style> {
+        let mut index = None;
+        for (i, style) in self.styles.iter().enumerate() {
+            if style.id == id {
+                index = Some(i);
             }
         }
-        None
+
+        if let Some(index) = index {
+            Some(self.styles.swap_remove(index))
+        } else {
+            None
+        }
+    }
+
+    pub fn style_id_from_str(&self, name_or_id: &str) -> Option<i32> {
+        if let Ok(id) = i32::from_str_radix(name_or_id, 10) {
+            if !self.contains_style(id) {
+                None
+            } else {
+                Some(id)
+            }
+        } else {
+            for style in &self.styles {
+                if style.name == name_or_id {
+                    return Some(style.id);
+                }
+            }
+            None
+        }
     }
 
     pub fn contains_style(&self, id: i32) -> bool {
@@ -80,6 +103,7 @@ pub struct Style {
     #[serde(skip_serializing, skip_deserializing)]
     pub css: String,
     pub id: i32,
+    pub uri: String,
     pub name: String,
     pub style_type: StyleType,
     pub domain: Option<String>,
@@ -206,6 +230,7 @@ fn dummy_style() -> Style {
     Style {
         id: 0,
         domain: None,
+        uri: String::new(),
         name: String::new(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
@@ -364,7 +389,7 @@ fn style_id_by_name__with_name_one__returns_one() {
         styles: vec![style_zero, style_one, style_two],
     };
 
-    let id = config.style_id_by_name("one").unwrap();
+    let id = config.style_id_from_str("one").unwrap();
 
     assert_eq!(id, 1);
 }

@@ -11,13 +11,18 @@ use config;
 const TMP_DIR: &str = "/tmp/rum/";
 
 // Get the css and settings of a style
-pub fn style<T: BufRead>(userstyle_id: &str, id: i32, input: &mut T) -> Result<config::Style> {
+pub fn style<T: BufRead>(userstyle_id: &str, id: i32, current_style: Option<config::Style>, input: &mut T) -> Result<config::Style> {
     // Send Request for Style
-    let userstyle_id = u32::from_str_radix(userstyle_id, 10)?;
-    let style = userstyles::get_style(userstyle_id)?;
+    let userstyle_id_int = u32::from_str_radix(userstyle_id, 10)?;
+    let style = userstyles::get_style(userstyle_id_int)?;
 
     // Get custom settings
-    let mut map = settings(&style, input)?;
+    let current_settings = if let Some(current_style) = current_style {
+        current_style.settings
+    } else {
+        HashMap::new()
+    };
+    let mut map = settings(&style, &current_settings, input)?;
 
     // Get custom CSS
     let css = style.get_css(Some(&mut map));
@@ -27,6 +32,7 @@ pub fn style<T: BufRead>(userstyle_id: &str, id: i32, input: &mut T) -> Result<c
         id,
         domain: None,
         name: style.name,
+        uri: userstyle_id.to_owned(),
         style_type: config::StyleType::Userstyle,
         settings: map,
         css
@@ -93,9 +99,14 @@ fn display_options(options: &[String], default: usize, show_custom: bool) {
 }
 
 // Ask users about settings he wants to change
-fn settings<T: BufRead>(style: &Style, mut input: T) -> Result<HashMap<String, String>> {
+fn settings<T: BufRead>(style: &Style, current_settings: &HashMap<String, String>, mut input: T) -> Result<HashMap<String, String>> {
     let mut map = HashMap::new();
     for setting in &style.style_settings {
+        if let Some(current_setting) = current_settings.get(&setting.install_key) {
+            map.insert(setting.install_key.clone(), current_setting.clone());
+            continue;
+        }
+
         let allow_custom = !(setting.setting_type == "dropdown");
         let style_options = style_options(setting);
         let style_default = style_default(setting);
@@ -176,7 +187,7 @@ fn style__with_demo_style_id__returns_demostyle_css() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = style(url, 0, &mut cursor).unwrap().css;
+    let css = style(url, 0, None, &mut cursor).unwrap().css;
 
     assert_eq!(css, "*{ color: red !important; }");
 }
@@ -187,7 +198,7 @@ fn style__with_demo_style_id__returns_domain_none() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let domain = style(url, 0, &mut cursor).unwrap().domain;
+    let domain = style(url, 0, None, &mut cursor).unwrap().domain;
 
     assert_eq!(domain, None);
 }
@@ -198,7 +209,7 @@ fn style__with_demo_style_id_and_id_3__returns_id_3() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let id = style(url, 3, &mut cursor).unwrap().id;
+    let id = style(url, 3, None, &mut cursor).unwrap().id;
 
     assert_eq!(id, 3);
 }
@@ -209,7 +220,7 @@ fn style__with_allo_style_id_default_settings__css_contains_default_color() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = style(url, 0, &mut cursor).unwrap().css;
+    let css = style(url, 0, None, &mut cursor).unwrap().css;
 
     assert!(css.contains("#0F9D58"));
 }
@@ -220,7 +231,7 @@ fn style__with_allo_style_id_custom_color_setting__css_contains_custom_color() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"1\n#ff00ff\n\n");
 
-    let css = style(url, 0, &mut cursor).unwrap().css;
+    let css = style(url, 0, None, &mut cursor).unwrap().css;
 
     assert!(css.contains("#ff00ff"));
 }
@@ -231,7 +242,7 @@ fn style__with_demo_style_id__returns_empty_settings() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let settings = style(url, 0, &mut cursor).unwrap().settings;
+    let settings = style(url, 0, None, &mut cursor).unwrap().settings;
 
     assert_eq!(settings.len(), 0);
 }
@@ -242,7 +253,7 @@ fn style__with_allo_style_id_default_settings__settings_hashmap() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"");
 
-    let settings = style(url, 0, &mut cursor).unwrap().settings;
+    let settings = style(url, 0, None, &mut cursor).unwrap().settings;
 
     assert_eq!(settings.get("ACCENTCOLOR").unwrap(), "#0F9D58");
     assert_eq!(
@@ -315,7 +326,7 @@ fn settings__with_choice_one__returns_choice() {
     let cursor = io::Cursor::new(b"1");
 
 
-    let map = settings(&style, cursor).unwrap();
+    let map = settings(&style, &HashMap::new(), cursor).unwrap();
     let elem = map.get(&key).unwrap();
 
 
@@ -334,7 +345,7 @@ fn settings__with_custom_color__returns_color() {
     let cursor = io::Cursor::new(b"0\n#ff00ff");
 
 
-    let map = settings(&style, cursor).unwrap();
+    let map = settings(&style, &HashMap::new(), cursor).unwrap();
     let elem = map.get(&key).unwrap();
 
 

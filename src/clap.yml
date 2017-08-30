@@ -16,16 +16,13 @@ subcommands:
     - update:
         about: Update styles
         args:
-            - silent:
-                short: s
-                long: short
-                help: Do not ask if a style should be updated
             - edit:
                 help: Modify the settings of a style
-                requires: STYLE
+                short: e
+                long: edit
             - STYLE:
                 help: The id or name of the style you want to update
-                conflicts_with: silent
+                multiple: true
     - remove:
         about: Remove a style
         args:
