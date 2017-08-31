@@ -12,14 +12,14 @@ pub const RUM_END: &str = "\n/* RUM END {} */\n";
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    pub user_content: String,
+    pub chrome_path: String,
     pub styles: Vec<Style>,
 }
 
 impl Config {
-    fn new(user_content: String) -> Config {
+    fn new(chrome_path: String) -> Config {
         Config {
-            user_content,
+            chrome_path,
             styles: Vec::new(),
         }
     }
@@ -35,6 +35,15 @@ impl Config {
             id += 1;
         }
         id
+    }
+
+    pub fn file_path_by_id(&self, id: i32) -> Option<PathBuf> {
+        for style in &self.styles {
+            if style.id == id {
+                return Some(style.path.clone());
+            }
+        }
+        None
     }
 
     pub fn load() -> Result<Config> {
@@ -104,6 +113,7 @@ pub struct Style {
     pub id: i32,
     pub uri: String,
     pub name: String,
+    pub path: PathBuf,
     pub style_type: StyleType,
     pub domain: Option<String>,
     pub settings: HashMap<String, String>,
@@ -135,14 +145,14 @@ pub fn create_config() -> Result<()> {
     let stdin = io::stdin();
     let profile = get_profile_selection(&profiles, &mut stdin.lock())?;
 
-    let mut user_content = profiles_ini;
-    user_content.pop();
-    user_content.push(profile);
-    user_content.push("chrome/userContent.css");
-    let user_content = user_content.to_str().ok_or("UserContent path invalid.")?;
+    let mut chrome_path = profiles_ini;
+    chrome_path.pop();
+    chrome_path.push(profile);
+    chrome_path.push("chrome");
+    let chrome_path = chrome_path.to_str().ok_or("Profile chrome path invalid.")?;
 
     // Create new config
-    let config = Config::new(user_content.to_owned());
+    let config = Config::new(chrome_path.to_owned());
     config.write()?;
 
     println!("Successfully created new profile.\n");
@@ -231,6 +241,7 @@ fn dummy_style() -> Style {
         domain: None,
         uri: String::new(),
         name: String::new(),
+        path: PathBuf::new(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
         css: String::new(),
@@ -341,7 +352,7 @@ fn next_style_id__with_two_styles__returns_minimal_id() {
     style_zero.id = 0;
     style_two.id = 2;
     let config = Config {
-        user_content: String::new(),
+        chrome_path: String::new(),
         styles: vec![style_zero, style_two],
     };
 
@@ -360,7 +371,7 @@ fn remove_style__with_id_one__removes_style_one() {
     style_one.id = 1;
     style_two.id = 2;
     let mut config = Config {
-        user_content: String::new(),
+        chrome_path: String::new(),
         styles: vec![style_zero, style_one, style_two],
     };
 
@@ -384,7 +395,7 @@ fn style_id_by_name__with_name_one__returns_one() {
     style_one.id = 1;
     style_two.id = 2;
     let config = Config {
-        user_content: String::new(),
+        chrome_path: String::new(),
         styles: vec![style_zero, style_one, style_two],
     };
 
@@ -399,7 +410,7 @@ fn contains_style__with_style__returns_true() {
     let mut style_zero = dummy_style();
     style_zero.id = 0;
     let config = Config {
-        user_content: String::new(),
+        chrome_path: String::new(),
         styles: vec![style_zero],
     };
 
@@ -412,7 +423,7 @@ fn contains_style__with_style__returns_true() {
 #[allow(non_snake_case)]
 fn contains_style__without_style__returns_false() {
     let config = Config {
-        user_content: String::new(),
+        chrome_path: String::new(),
         styles: vec![],
     };
 

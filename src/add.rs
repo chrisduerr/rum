@@ -2,6 +2,7 @@ use config::{self, Config, Style, StyleType};
 use std::io::{self, BufRead, Read, Write};
 use std::fs::{File, OpenOptions};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use clap::ArgMatches;
 use errors::*;
 use userstyle;
@@ -12,7 +13,7 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
 
     for uri in uris {
         println!("Adding '{}':", uri);
-        add_style(&uri, None)?;
+        add_style(&uri, matches.is_present("userchrome"), None)?;
         println!("Added style '{}'\n", uri);
     }
 
@@ -22,33 +23,41 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
 }
 
 // Add a single style to config and userContent
-pub fn add_style(uri: &str, current_style: Option<Style>) -> Result<()> {
+pub fn add_style(uri: &str, user_chrome: bool, current_style: Option<Style>) -> Result<()> {
     // Get current config
     let mut config = Config::load()?;
 
     let id = config.next_style_id();
 
+    // Get correct file path
+    let mut file_path = PathBuf::from(&config.chrome_path);
+    if user_chrome {
+        file_path.push("userChrome.css");
+    } else {
+        file_path.push("userContent.css");
+    }
+
     // Get css and settings
     let stdin = io::stdin();
     let mut style = if uri.starts_with('/') {
-        local_style(uri, id, current_style, &mut stdin.lock())?
+        local_style(uri, id, current_style, file_path.clone(), &mut stdin.lock())?
     } else if uri.contains('.') {
-        remote_style(uri, id, current_style, &mut stdin.lock())?
+        remote_style(uri, id, current_style, file_path.clone(), &mut stdin.lock())?
     } else {
-        userstyle::style(uri, id, current_style, &mut stdin.lock())?
+        userstyle::style(uri, id, current_style, file_path.clone(), &mut stdin.lock())?
     };
 
-    // Save new userContent
+    // Save new File
     if let Some(ref domain) = style.domain {
         style.css = format!("@-moz-document {} {{\n{}\n}}", domain, style.css);
     }
-    let content = [config::RUM_START, &style.css, config::RUM_END].concat();
+    let start = config::RUM_START.replace("{}", &id.to_string());
+    let end = config::RUM_END.replace("{}", &id.to_string());
+    let content = start + &style.css + &end;
 
     let mut openopts = OpenOptions::new();
     openopts.write(true).append(true).create(true);
-    openopts
-        .open(&config.user_content)?
-        .write_all(content.as_bytes())?;
+    openopts.open(&file_path)?.write_all(content.as_bytes())?;
 
     // Add style to config
     config.styles.push(style);
@@ -106,30 +115,13 @@ fn local_style<T: BufRead>(
     path: &str,
     id: i32,
     style: Option<Style>,
+    file_path: PathBuf,
     input: &mut T,
 ) -> Result<Style> {
     let mut css = String::new();
     File::open(path)?.read_to_string(&mut css)?;
 
-    // Update existing style
-    if let Some(mut style) = style {
-        style.css = css;
-        return Ok(style);
-    }
-
-    // Add new style
-    let name = read_name(input);
-    let domain = read_domain(input);
-
-    Ok(Style {
-        id,
-        name,
-        domain,
-        uri: path.to_owned(),
-        style_type: StyleType::Local,
-        settings: HashMap::new(),
-        css,
-    })
+    generic_style(path, id, css, style, file_path, input)
 }
 
 // Load a remote style
@@ -137,11 +129,24 @@ fn remote_style<T: BufRead>(
     url: &str,
     id: i32,
     style: Option<Style>,
+    file_path: PathBuf,
     input: &mut T,
 ) -> Result<Style> {
     let mut css = String::new();
     reqwest::get(url)?.read_to_string(&mut css)?;
 
+    generic_style(url, id, css, style, file_path, input)
+}
+
+// Generic method that creates style from CSS only
+fn generic_style<T: BufRead>(
+    uri: &str,
+    id: i32,
+    css: String,
+    style: Option<Style>,
+    path: PathBuf,
+    input: &mut T,
+) -> Result<Style> {
     // Update existing style
     if let Some(mut style) = style {
         style.css = css;
@@ -150,14 +155,19 @@ fn remote_style<T: BufRead>(
 
     // Add new style
     let name = read_name(input);
-    let domain = read_domain(input);
+    let domain = if path.ends_with("userChrome.css") {
+        Some(String::from("url(chrome://browser/content/browser.xul)"))
+    } else {
+        read_domain(input)
+    };
 
     Ok(Style {
         id,
         name,
         domain,
-        uri: url.to_owned(),
-        style_type: StyleType::Remote,
+        path,
+        uri: uri.to_owned(),
+        style_type: StyleType::Local,
         settings: HashMap::new(),
         css,
     })

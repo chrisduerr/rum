@@ -7,6 +7,10 @@ subcommands:
     - add:
         about: Add a new Style
         args:
+            - userchrome:
+                help: Save this style in the userChrome.css
+                short: c
+                long: chrome
             - STYLE:
                 help: Add style using path, URL or userstyles.org id
                 required: true

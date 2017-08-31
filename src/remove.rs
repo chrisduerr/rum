@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
-use std::fs::OpenOptions;
+use std::path::PathBuf;
 use clap::ArgMatches;
+use std::fs::File;
 use errors::*;
 use config;
 
@@ -26,31 +27,32 @@ pub fn remove_style(style: &str) -> Result<()> {
         .style_id_from_str(style)
         .ok_or("Invalid style id or name")?;
 
+    let path = config.file_path_by_id(id).ok_or("Invalid file path")?;
+
     // Remove style from config
     config.remove_style(id);
 
     // Save config
     config.write()?;
 
-    // Remove from userContent.css
-    remove_from_usercontent(id, &config.user_content)?;
+    // Remove from file
+    remove_from_file(id, &path)?;
 
     Ok(())
 }
 
-fn remove_from_usercontent(id: i32, path: &str) -> Result<()> {
-    // Open usercontent file
-    let mut options = OpenOptions::new();
-    options.write(true).read(true).truncate(true);
-    let mut file = options.open(path)?;
+fn remove_from_file(id: i32, path: &PathBuf) -> Result<()> {
+    // Read current content
+    let mut content = String::new();
+    {
+        File::open(path)?.read_to_string(&mut content)?;
+    }
 
-    // Remove style from userContent
-    let mut user_content = String::new();
-    file.read_to_string(&mut user_content)?;
-    user_content = remove_style_from_str(&user_content, id);
+    // Get new content
+    content = remove_style_from_str(&content, id);
 
-    // Write new userContent
-    file.write_all(user_content.as_bytes())?;
+    // Write new file
+    File::create(path)?.write_all(content.as_bytes())?;
 
     Ok(())
 }

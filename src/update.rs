@@ -36,11 +36,16 @@ fn update_style(style: &str, edit: bool) -> Result<()> {
     // Remove old style
     remove::remove_style(&id.to_string())?;
 
+    // Check if userchrome or usercontent
+    let path_str = current_style.path.clone();
+    let path_str = path_str.to_str().ok_or("Invalid file path")?;
+    let user_chrome = path_str.ends_with("userChrome.css");
+
     // Add new updated style
     if edit {
-        add::add_style(&current_style.uri, None)?;
+        add::add_style(&current_style.uri, user_chrome, None)?;
     } else {
-        add::add_style(&current_style.uri.clone(), Some(current_style))?;
+        add::add_style(&current_style.uri.clone(), user_chrome, Some(current_style))?;
     }
 
     Ok(())

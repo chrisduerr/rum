@@ -1,6 +1,7 @@
 use userstyles::response::{Style, StyleSetting};
 use std::io::{self, BufRead, Write};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use userstyles;
 use errors::*;
 use std::fs;
@@ -15,6 +16,7 @@ pub fn style<T: BufRead>(
     userstyle_id: &str,
     id: i32,
     current_style: Option<config::Style>,
+    path: PathBuf,
     input: &mut T,
 ) -> Result<config::Style> {
     // Send Request for Style
@@ -35,6 +37,7 @@ pub fn style<T: BufRead>(
     // Return style
     Ok(config::Style {
         id,
+        path,
         domain: None,
         name: style.name,
         uri: userstyle_id.to_owned(),
@@ -196,7 +199,9 @@ fn style__with_demo_style_id__returns_demostyle_css() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = style(url, 0, None, &mut cursor).unwrap().css;
+    let css = style(url, 0, None, PathBuf::new(), &mut cursor)
+        .unwrap()
+        .css;
 
     assert_eq!(css, "*{ color: red !important; }");
 }
@@ -207,7 +212,9 @@ fn style__with_demo_style_id__returns_domain_none() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let domain = style(url, 0, None, &mut cursor).unwrap().domain;
+    let domain = style(url, 0, None, PathBuf::new(), &mut cursor)
+        .unwrap()
+        .domain;
 
     assert_eq!(domain, None);
 }
@@ -218,7 +225,7 @@ fn style__with_demo_style_id_and_id_3__returns_id_3() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let id = style(url, 3, None, &mut cursor).unwrap().id;
+    let id = style(url, 3, None, PathBuf::new(), &mut cursor).unwrap().id;
 
     assert_eq!(id, 3);
 }
@@ -229,7 +236,9 @@ fn style__with_allo_style_id_default_settings__css_contains_default_color() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"");
 
-    let css = style(url, 0, None, &mut cursor).unwrap().css;
+    let css = style(url, 0, None, PathBuf::new(), &mut cursor)
+        .unwrap()
+        .css;
 
     assert!(css.contains("#0F9D58"));
 }
@@ -240,7 +249,9 @@ fn style__with_allo_style_id_custom_color_setting__css_contains_custom_color() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"1\n#ff00ff\n\n");
 
-    let css = style(url, 0, None, &mut cursor).unwrap().css;
+    let css = style(url, 0, None, PathBuf::new(), &mut cursor)
+        .unwrap()
+        .css;
 
     assert!(css.contains("#ff00ff"));
 }
@@ -251,7 +262,9 @@ fn style__with_demo_style_id__returns_empty_settings() {
     let url = "1";
     let mut cursor = io::Cursor::new(b"");
 
-    let settings = style(url, 0, None, &mut cursor).unwrap().settings;
+    let settings = style(url, 0, None, PathBuf::new(), &mut cursor)
+        .unwrap()
+        .settings;
 
     assert_eq!(settings.len(), 0);
 }
@@ -262,7 +275,9 @@ fn style__with_allo_style_id_default_settings__settings_hashmap() {
     let url = "146771";
     let mut cursor = io::Cursor::new(b"");
 
-    let settings = style(url, 0, None, &mut cursor).unwrap().settings;
+    let settings = style(url, 0, None, PathBuf::new(), &mut cursor)
+        .unwrap()
+        .settings;
 
     assert_eq!(settings.get("ACCENTCOLOR").unwrap(), "#0F9D58");
     assert_eq!(
