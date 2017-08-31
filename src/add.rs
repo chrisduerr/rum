@@ -102,7 +102,12 @@ fn read_domain<T: BufRead>(input: &mut T) -> Option<String> {
 }
 
 // Load a local style
-fn local_style<T: BufRead>(path: &str, id: i32, style: Option<Style>, input: &mut T) -> Result<Style> {
+fn local_style<T: BufRead>(
+    path: &str,
+    id: i32,
+    style: Option<Style>,
+    input: &mut T,
+) -> Result<Style> {
     let mut css = String::new();
     File::open(path)?.read_to_string(&mut css)?;
 
@@ -123,12 +128,17 @@ fn local_style<T: BufRead>(path: &str, id: i32, style: Option<Style>, input: &mu
         uri: path.to_owned(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
-        css
+        css,
     })
 }
 
 // Load a remote style
-fn remote_style<T: BufRead>(url: &str, id: i32, style: Option<Style>, input: &mut T) -> Result<Style> {
+fn remote_style<T: BufRead>(
+    url: &str,
+    id: i32,
+    style: Option<Style>,
+    input: &mut T,
+) -> Result<Style> {
     let mut css = String::new();
     reqwest::get(url)?.read_to_string(&mut css)?;
 
@@ -149,7 +159,7 @@ fn remote_style<T: BufRead>(url: &str, id: i32, style: Option<Style>, input: &mu
         uri: url.to_owned(),
         style_type: StyleType::Remote,
         settings: HashMap::new(),
-        css
+        css,
     })
 }
 

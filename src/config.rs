@@ -100,8 +100,7 @@ impl Config {
 
 #[derive(Serialize, Deserialize)]
 pub struct Style {
-    #[serde(skip_serializing, skip_deserializing)]
-    pub css: String,
+    #[serde(skip_serializing, skip_deserializing)] pub css: String,
     pub id: i32,
     pub uri: String,
     pub name: String,
@@ -234,7 +233,7 @@ fn dummy_style() -> Style {
         name: String::new(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
-        css: String::new()
+        css: String::new(),
     }
 }
 

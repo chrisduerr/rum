@@ -7,7 +7,11 @@ use add;
 pub fn run(matches: &ArgMatches) -> Result<()> {
     let styles = match matches.values_of_lossy("STYLE") {
         Some(styles) => styles,
-        None => Config::load()?.styles.iter().map(|s| s.id.to_string()).collect(),
+        None => Config::load()?
+            .styles
+            .iter()
+            .map(|s| s.id.to_string())
+            .collect(),
     };
     let edit = matches.is_present("edit");
 
@@ -22,7 +26,9 @@ fn update_style(style: &str, edit: bool) -> Result<()> {
     let mut config = Config::load()?;
 
     // Get the id of the style that will be updated
-    let id = config.style_id_from_str(style).ok_or("Invalid style id or name")?;
+    let id = config
+        .style_id_from_str(style)
+        .ok_or("Invalid style id or name")?;
 
     // Get current style
     let current_style = config.pop_style(id).ok_or("Unable to find style in config")?;

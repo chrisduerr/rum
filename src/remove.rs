@@ -22,7 +22,9 @@ pub fn remove_style(style: &str) -> Result<()> {
     let mut config = config::Config::load()?;
 
     // Get the id of the style that will be removed
-    let id = config.style_id_from_str(style).ok_or("Invalid style id or name")?;
+    let id = config
+        .style_id_from_str(style)
+        .ok_or("Invalid style id or name")?;
 
     // Remove style from config
     config.remove_style(id);
@@ -74,7 +76,7 @@ fn remove_style_from_str(user_content: &str, id: i32) -> String {
 #[allow(non_snake_case)]
 fn remove_style_from_str__with_id_zero__removes_style_zero() {
     let user_content = "foobar\n\n/* RUM START 0 */\nstyle\n\
-        /* RUM END 0 */\n\n/* RUM START 1 */\n\n/* RUM END 1 */\n";
+                        /* RUM END 0 */\n\n/* RUM START 1 */\n\n/* RUM END 1 */\n";
 
     let result = remove_style_from_str(user_content, 0);
 

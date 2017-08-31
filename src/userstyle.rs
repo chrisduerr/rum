@@ -11,7 +11,12 @@ use config;
 const TMP_DIR: &str = "/tmp/rum/";
 
 // Get the css and settings of a style
-pub fn style<T: BufRead>(userstyle_id: &str, id: i32, current_style: Option<config::Style>, input: &mut T) -> Result<config::Style> {
+pub fn style<T: BufRead>(
+    userstyle_id: &str,
+    id: i32,
+    current_style: Option<config::Style>,
+    input: &mut T,
+) -> Result<config::Style> {
     // Send Request for Style
     let userstyle_id_int = u32::from_str_radix(userstyle_id, 10)?;
     let style = userstyles::get_style(userstyle_id_int)?;
@@ -35,7 +40,7 @@ pub fn style<T: BufRead>(userstyle_id: &str, id: i32, current_style: Option<conf
         uri: userstyle_id.to_owned(),
         style_type: config::StyleType::Userstyle,
         settings: map,
-        css
+        css,
     })
 }
 
@@ -99,7 +104,11 @@ fn display_options(options: &[String], default: usize, show_custom: bool) {
 }
 
 // Ask users about settings he wants to change
-fn settings<T: BufRead>(style: &Style, current_settings: &HashMap<String, String>, mut input: T) -> Result<HashMap<String, String>> {
+fn settings<T: BufRead>(
+    style: &Style,
+    current_settings: &HashMap<String, String>,
+    mut input: T,
+) -> Result<HashMap<String, String>> {
     let mut map = HashMap::new();
     for setting in &style.style_settings {
         if let Some(current_setting) = current_settings.get(&setting.install_key) {
