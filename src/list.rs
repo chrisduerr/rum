@@ -6,7 +6,10 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     let verbose = matches.is_present("verbose");
     let config = Config::load()?;
 
-    for style in config.styles {
+    let mut styles = config.styles.clone();
+    styles.sort_by_key(|s| s.id);
+
+    for style in styles {
         if verbose {
             print_verbose(style);
         } else {

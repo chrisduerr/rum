@@ -107,7 +107,7 @@ impl Config {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Style {
     #[serde(skip_serializing, skip_deserializing)] pub css: String,
     pub id: i32,
@@ -119,7 +119,7 @@ pub struct Style {
     pub settings: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum StyleType {
     Userstyle,
     Local,
