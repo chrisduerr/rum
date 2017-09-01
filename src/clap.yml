@@ -5,7 +5,7 @@ about: A userstyle manager for Firefox that uses the userContent.css
 args:
 subcommands:
     - add:
-        about: Add a new Style
+        about: Add new Styles
         args:
             - userchrome:
                 help: Save this style in the userChrome.css
@@ -33,7 +33,7 @@ subcommands:
                 help: The id or name of the style you want to update
                 multiple: true
     - remove:
-        about: Remove a style
+        about: Remove styles
         args:
             - STYLE:
                 help: The ids or names of the styles you want to remove

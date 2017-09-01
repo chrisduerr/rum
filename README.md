@@ -2,11 +2,11 @@
 
 ### Purpose of RUM
 
-I created RUM because WebExtension Userstyle managers do not have direct access to the filesystem anymore and are not able to change the Browser's UI. This might be disired because having files makes it easy to replace and manage your styles with standard *NIX tools. So I had to create a way to convinently manage my userChrome and userContent with one tool.
+I created RUM because WebExtension userstyle managers do not have direct access to the filesystem anymore and are not able to change the Browser's UI. This might be desired because having files makes it easy to edit and manage your styles with standard *NIX tools. So I had to create a way to conveniently manage my userChrome and userContent with one tool.
 
 RUM makes it possible to manage styles from userstyles.org, your filesystem or any URL without having to leave the CLI.
 
-### Usage Example
+### Usage Examples
 
 #### Adding a Style from userstyles.org
 
@@ -34,7 +34,7 @@ Added all styles!
 
 #### Adding a Style from a local file or URL
 
-Adding a Style from a local file or URL is a bit different because there are no settings but you need to provide some other information.
+Adding a Style from a local file or URL is a bit different because there are no settings, but you need to provide some other information.
 ```
 # Using a path requires the full path, not a relative one
 # Using a link requires a valid URL
@@ -45,12 +45,12 @@ Please select a name for this style:
  > Cool Style
 Do you want to add a domain?
 # Every style in Firefox that is not global needs to have a domain associated to it
-# If your style does not have a "@-moz-document" annotation you probably want to add a domain
+# If your style does not have a "@-moz-document" annotation, you probably want to add a domain
 [y/N] > Y
 Please select a target domain:
 Example: 'domain("kernel.org")'
 # The example already shows a simple domain annotation option that works in most cases
-# For more information read ![this](https://developer.mozilla.org/en-US/docs/Web/CSS/@document)
+# For more information read this: https://developer.mozilla.org/en-US/docs/Web/CSS/@document
  > domain("coolstyles.com")
 Added style '/home/rumuser/MyStyles/CoolStyle.css'
 
@@ -59,7 +59,7 @@ Added all styles!
 
 #### UserChrome
 
-By default `rum add` adds styles to the userContent.css, which does not work for modifying the Browser's UI. If you wish to add a style that applies to the Browser UI, you need to add the `--chrome` flag. Example: `rum -c ~/UIStyle.css`.
+By default `rum add` uses the the userContent.css, which does not work for modifying the browser's UI. If you wish to add a style that applies to the browser UI, you need to add the `--chrome` flag. Example: `rum -c ~/UIStyle.css`.
 
 #### Other management tools
 
@@ -79,10 +79,10 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    add       Add a new Style
+    add       Add new Styles
     help      Prints this message or the help of the given subcommand(s)
     list      List all installed styles
-    remove    Remove a style
+    remove    Remove styles
     update    Update styles
 ```
 
