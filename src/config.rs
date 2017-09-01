@@ -119,7 +119,7 @@ pub struct Style {
     pub settings: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum StyleType {
     Userstyle,
     Local,

@@ -17,6 +17,11 @@ subcommands:
                 multiple: true
     - list:
         about: List all installed styles
+        args:
+            - verbose:
+                help: Print more information about each style
+                short: v
+                long: vebose
     - update:
         about: Update styles
         args:

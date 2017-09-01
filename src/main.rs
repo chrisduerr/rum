@@ -9,7 +9,6 @@ extern crate serde_derive;
 
 extern crate base64;
 extern crate reqwest;
-extern crate serde;
 extern crate toml;
 extern crate userstyles;
 
@@ -47,7 +46,7 @@ fn run() -> Result<()> {
     if let Some(subcommand) = matches.subcommand_name() {
         match subcommand {
             "add" => add::run(matches.subcommand_matches("add").unwrap())?,
-            "list" => list::run()?,
+            "list" => list::run(matches.subcommand_matches("list").unwrap())?,
             "remove" => remove::run(matches.subcommand_matches("remove").unwrap())?,
             "update" => update::run(matches.subcommand_matches("update").unwrap())?,
             _ => (),
