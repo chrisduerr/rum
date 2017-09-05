@@ -1,5 +1,5 @@
 name: RUM - Rust Userstyle Manager
-version: "0.1.0"
+version: "0.1.1"
 author: Christian Dürr <contact@christianduerr.com>
 about: A userstyle manager for Firefox that uses the userContent.css
 args:
