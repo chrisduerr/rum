@@ -13,7 +13,12 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
         if verbose {
             print_verbose(style);
         } else {
-            println!("({}) {}", style.id, style.name);
+            let id_str = ["(", &style.id.to_string(), ")"].concat();
+            if style.path.to_string_lossy().ends_with("userChrome.css") {
+                println!("{:5} [CONTENT] {}", id_str, style.name);
+            } else {
+                println!("{:5} [CHROME]  {}", id_str, style.name);
+            };
         }
     }
 
