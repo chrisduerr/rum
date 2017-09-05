@@ -1,23 +1,32 @@
 use clap::ArgMatches;
 use config::Config;
 use errors::*;
+use std::fs;
 use remove;
 use add;
 
 pub fn run(matches: &ArgMatches) -> Result<()> {
+    // Make sure the /chrome folder exists
+    let config = Config::load()?;
+    fs::create_dir_all(config.chrome_path)?;
+
     let styles = match matches.values_of_lossy("STYLE") {
         Some(styles) => styles,
         None => Config::load()?
             .styles
             .iter()
-            .map(|s| s.id.to_string())
+            .map(|s| s.name.clone())
             .collect(),
     };
     let edit = matches.is_present("edit");
 
     for style in styles {
+        println!("Updating '{}'", style);
         update_style(&style, edit)?;
+        println!("Updated style '{}'\n", style);
     }
+
+    println!("Updated all styles!");
 
     Ok(())
 }

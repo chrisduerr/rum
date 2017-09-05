@@ -1,6 +1,6 @@
 use config::{self, Config, Style, StyleType};
 use std::io::{self, BufRead, Read, Write};
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use clap::ArgMatches;
@@ -9,6 +9,10 @@ use userstyle;
 use reqwest;
 
 pub fn run(matches: &ArgMatches) -> Result<()> {
+    // Make sure the /chrome folder exists
+    let config = Config::load()?;
+    fs::create_dir_all(config.chrome_path)?;
+
     let uris = matches.values_of_lossy("STYLE").unwrap();
 
     for uri in uris {

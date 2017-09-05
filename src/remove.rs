@@ -45,7 +45,16 @@ fn remove_from_file(id: i32, path: &PathBuf) -> Result<()> {
     // Read current content
     let mut content = String::new();
     {
-        File::open(path)?.read_to_string(&mut content)?;
+        match File::open(path) {
+            Ok(mut file) => {
+                file.read_to_string(&mut content)?;
+            }
+            Err(e) => {
+                println!("Unable to find '{}': {}", path.to_string_lossy(), e);
+                println!("Removing style only from config");
+                return Ok(());
+            }
+        };
     }
 
     // Get new content
