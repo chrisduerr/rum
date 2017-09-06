@@ -146,7 +146,7 @@ fn read_custom_setting<T: BufRead>(input: &mut T) -> String {
     loop {
         let mut choice = String::new();
         if input.read_line(&mut choice).is_err() {
-            println!("Invalid input. Please try again");
+            eprintln!("\x1b[0;31;40mInvalid input. Please try again");
         } else {
             choice = choice.trim().to_owned();
             return choice;
@@ -180,7 +180,7 @@ fn read_user_choice<T: BufRead>(
             }
         }
 
-        println!("Invalid input. Please try again.");
+        eprintln!("\x1b[0;31;40mInvalid input. Please try again.");
         print!(" > ");
         let _ = io::stdout().flush();
     }

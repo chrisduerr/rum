@@ -91,7 +91,7 @@ fn read_text<T: BufRead>(text: &str, input: &mut T) -> String {
     loop {
         let mut choice = String::new();
         if input.read_line(&mut choice).is_err() {
-            println!("Invalid input. Please try again.");
+            eprintln!("\x1b[0;31;40mInvalid input. Please try again.");
             print!(" > ");
             let _ = io::stdout().flush();
         } else {

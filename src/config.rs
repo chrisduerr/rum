@@ -163,7 +163,7 @@ pub fn create_config() -> Result<()> {
 // Attempts to recover an  old config
 // This steps the user through what is going on
 pub fn restore_config(backup: &Config, error: &Error) -> Result<()> {
-    println!("Unable to write style: {}", error);
+    eprintln!("\x1b[0;31;40mUnable to write style: {}", error);
     println!("Attempting to recover config");
     match backup.write() {
         Ok(_) => {
@@ -172,8 +172,8 @@ pub fn restore_config(backup: &Config, error: &Error) -> Result<()> {
             Ok(())
         }
         error => {
-            println!("Unable to recover config");
-            println!("Please ensure the config is not corrupted");
+            eprintln!("\x1b[0;31;40mUnable to recover config");
+            eprintln!("\x1b[0;31;40mPlease ensure the config is not corrupted");
             error
         }
     }

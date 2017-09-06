@@ -36,7 +36,7 @@ use clap::App;
 quick_main!(run);
 fn run() -> Result<()> {
     if !config::config_exists() {
-        println!("No config file found.\n");
+        eprintln!("\x1b[0;31;40mNo config file found.\n");
         config::create_config()?;
     }
 
