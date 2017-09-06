@@ -10,7 +10,7 @@ const CONFIG_PATH: &str = ".config/rum.toml";
 pub const RUM_START: &str = "\n/* RUM START {} */\n";
 pub const RUM_END: &str = "\n/* RUM END {} */\n";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
     pub chrome_path: String,
     pub styles: Vec<Style>,
@@ -158,6 +158,25 @@ pub fn create_config() -> Result<()> {
     println!("Successfully created new profile.\n");
 
     Ok(())
+}
+
+// Attempts to recover an  old config
+// This steps the user through what is going on
+pub fn restore_config(backup: &Config, error: &Error) -> Result<()> {
+    println!("Unable to write style: {}", error);
+    println!("Attempting to recover config");
+    match backup.write() {
+        Ok(_) => {
+            println!("Successfully recovered config");
+            println!("Style has not been added");
+            Ok(())
+        }
+        error => {
+            println!("Unable to recover config");
+            println!("Please ensure the config is not corrupted");
+            error
+        }
+    }
 }
 
 // Return the location of the `pofiles.ini` file

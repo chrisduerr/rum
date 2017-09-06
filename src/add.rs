@@ -30,6 +30,7 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
 pub fn add_style(uri: &str, user_chrome: bool, current_style: Option<Style>) -> Result<()> {
     // Get current config
     let mut config = Config::load()?;
+    let config_backup = config.clone();
 
     let id = config.next_style_id();
 
@@ -51,23 +52,32 @@ pub fn add_style(uri: &str, user_chrome: bool, current_style: Option<Style>) -> 
         userstyle::style(uri, id, current_style, file_path.clone(), &mut stdin.lock())?
     };
 
-    // Save new File
+    // Add domain to CSS
     if let Some(ref domain) = style.domain {
         style.css = format!("@-moz-document {} {{\n{}\n}}", domain, style.css);
     }
+
+    // Add style to config
+    config.styles.push(style.clone());
+
+    // Save new config
+    config.write()?;
+
+    // Save new File
     let start = config::RUM_START.replace("{}", &id.to_string());
     let end = config::RUM_END.replace("{}", &id.to_string());
     let content = start + &style.css + &end;
 
     let mut openopts = OpenOptions::new();
     openopts.write(true).append(true).create(true);
-    openopts.open(&file_path)?.write_all(content.as_bytes())?;
+    let result = openopts
+        .open(&file_path)
+        .and_then(|mut f| f.write_all(content.as_bytes()));
 
-    // Add style to config
-    config.styles.push(style);
-
-    // Save new config
-    config.write()?;
+    // Restore config if style could not be written
+    if let Err(e) = result {
+        config::restore_config(&config_backup, &Error::from(e))?;
+    }
 
     Ok(())
 }

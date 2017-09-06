@@ -20,7 +20,9 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
 }
 
 pub fn remove_style(style: &str) -> Result<()> {
+    // Get current config
     let mut config = config::Config::load()?;
+    let config_backup = config.clone();
 
     // Get the id of the style that will be removed
     let id = config
@@ -36,7 +38,12 @@ pub fn remove_style(style: &str) -> Result<()> {
     config.write()?;
 
     // Remove from file
-    remove_from_file(id, &path)?;
+    let result = remove_from_file(id, &path);
+
+    // Restore config if style could not be removed from file
+    if let Err(e) = result {
+        config::restore_config(&config_backup, &e)?;
+    }
 
     Ok(())
 }
