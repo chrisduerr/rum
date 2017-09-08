@@ -7,6 +7,7 @@ authors = ["Christian Dürr <contact@christianduerr.com>"]
 clap = { version = "2.26.0", features = ["yaml"] }
 serde_derive = "1.0.11"
 error-chain = "0.11.0"
+lazy_static = "0.2.8"
 userstyles = "0.1.1"
 reqwest = "0.7.3"
 base64 = "0.6.0"
