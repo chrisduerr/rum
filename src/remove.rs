@@ -9,17 +9,16 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     let styles = matches.values_of_lossy("STYLE").unwrap();
 
     for style in styles {
-        println!("Removing '{}'", style);
+        println!("");
         remove_style(&style)?;
-        println!("Removed style '{}'\n", style);
     }
-
-    println!("Removed all styles!");
 
     Ok(())
 }
 
 pub fn remove_style(style: &str) -> Result<()> {
+    println!("Removing '{}'", style);
+
     // Get current config
     let mut config = config::Config::load()?;
     let config_backup = config.clone();
@@ -45,6 +44,8 @@ pub fn remove_style(style: &str) -> Result<()> {
         config::restore_config(&config_backup, &e)?;
     }
 
+    println!("Removed style '{}'", style);
+
     Ok(())
 }
 
@@ -58,7 +59,7 @@ fn remove_from_file(id: i32, path: &PathBuf) -> Result<()> {
             }
             Err(e) => {
                 eprintln!(
-                    "\x1b[0;31;40mUnable to find '{}': {}",
+                    "\x1b[0;31;40mUnable to find '{}': {}\x1b[0m",
                     path.to_string_lossy(),
                     e
                 );

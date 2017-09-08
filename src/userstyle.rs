@@ -23,6 +23,12 @@ pub fn style<T: BufRead>(
     let userstyle_id_int = u32::from_str_radix(userstyle_id, 10)?;
     let style = userstyles::get_style(userstyle_id_int)?;
 
+    // Get status of style
+    let enabled = current_style
+        .as_ref()
+        .and_then(|s| Some(s.enabled))
+        .unwrap_or(true);
+
     // Get custom settings
     let current_settings = if let Some(current_style) = current_style {
         current_style.settings
@@ -38,6 +44,7 @@ pub fn style<T: BufRead>(
     Ok(config::Style {
         id,
         path,
+        enabled,
         domain: None,
         name: style.name,
         uri: userstyle_id.to_owned(),
@@ -146,7 +153,7 @@ fn read_custom_setting<T: BufRead>(input: &mut T) -> String {
     loop {
         let mut choice = String::new();
         if input.read_line(&mut choice).is_err() {
-            eprintln!("\x1b[0;31;40mInvalid input. Please try again");
+            eprintln!("\x1b[0;31;40mInvalid input. Please try again\x1b[0m");
         } else {
             choice = choice.trim().to_owned();
             return choice;
@@ -180,7 +187,7 @@ fn read_user_choice<T: BufRead>(
             }
         }
 
-        eprintln!("\x1b[0;31;40mInvalid input. Please try again.");
+        eprintln!("\x1b[0;31;40mInvalid input. Please try again.\x1b[0m");
         print!(" > ");
         let _ = io::stdout().flush();
     }

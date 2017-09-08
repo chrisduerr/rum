@@ -5,6 +5,7 @@ use config::Config;
 use errors::*;
 use std::fs;
 use remove;
+use config;
 use add;
 
 pub fn run(matches: &ArgMatches) -> Result<()> {
@@ -23,17 +24,55 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     let edit = matches.is_present("edit");
 
     for style in styles {
-        println!("Updating '{}'", style);
-        update_style(&style, edit)?;
-        println!("Updated style '{}'\n", style);
+        if matches.is_present("toggle") {
+            println!("");
+            toggle_style(&style)?;
+        } else {
+            println!("");
+            update_style(&style, edit)?;
+        }
     }
-
-    println!("Updated all styles!");
 
     Ok(())
 }
 
+// Toggles a style
+// Enable if Disabled, Disable if Enabled
+fn toggle_style(style: &str) -> Result<()> {
+    println!("Toggling '{}'", style);
+
+    // Load config and backup initial state
+    let mut config = Config::load()?;
+    let config_backup = config.clone();
+
+    // Get the id of the style that will be toggled
+    let id = config
+        .style_id_from_str(style)
+        .ok_or("Invalid style id or name")?;
+
+    // Toggle the style in the config
+    config.toggle_style(id)?;
+
+    config.write()?;
+
+    // Update target file
+    let result = update_style(style, false);
+
+    // Recover config if update failed
+    if let Err(error) = result {
+        config::restore_config(&config_backup, &error)?;
+    }
+
+    println!("Toggled style '{}'", style);
+
+    Ok(())
+}
+
+// Update a style
+// Asks about settings again if `edit` is true
 fn update_style(style: &str, edit: bool) -> Result<()> {
+    println!("Updating '{}'", style);
+
     // Load config and backup initial state
     let mut config = Config::load()?;
     let config_backup = config.clone();
@@ -62,11 +101,17 @@ fn update_style(style: &str, edit: bool) -> Result<()> {
     // Remove old style
     remove::remove_style(&id.to_string())?;
 
+    let enabled = current_style.enabled;
     // Add new updated style
     let result = if edit {
-        add::add_style(&current_style.uri, user_chrome, None)
+        add::add_style(&current_style.uri, user_chrome, None, !enabled)
     } else {
-        add::add_style(&current_style.uri.clone(), user_chrome, Some(current_style))
+        add::add_style(
+            &current_style.uri.clone(),
+            user_chrome,
+            Some(current_style),
+            !enabled,
+        )
     };
 
     // Recover both config and target file if add failed
@@ -74,11 +119,13 @@ fn update_style(style: &str, edit: bool) -> Result<()> {
         recover_failure(&config_backup, &file_backup, &target_path)?;
     }
 
+    println!("Updated style '{}'", style);
+
     Ok(())
 }
 
 fn recover_failure(config_backup: &Config, file_backup: &str, target_path: &PathBuf) -> Result<()> {
-    eprintln!("\x1b[0;31;40mUnable to readd style");
+    eprintln!("\x1b[0;31;40mUnable to update style\x1b[0m");
     println!("Attempting to restore config and target file");
 
     // Recover config

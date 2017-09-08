@@ -105,6 +105,17 @@ impl Config {
         }
         false
     }
+
+    pub fn toggle_style(&mut self, id: i32) -> Result<()> {
+        for style in &mut self.styles {
+            if style.id == id {
+                style.enabled = !style.enabled;
+                return Ok(());
+            }
+        }
+
+        Err("Style with this id does not exist")?
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -114,9 +125,14 @@ pub struct Style {
     pub uri: String,
     pub name: String,
     pub path: PathBuf,
+    #[serde(default = "default_true")] pub enabled: bool,
     pub style_type: StyleType,
     pub domain: Option<String>,
     pub settings: HashMap<String, String>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -163,7 +179,7 @@ pub fn create_config() -> Result<()> {
 // Attempts to recover an  old config
 // This steps the user through what is going on
 pub fn restore_config(backup: &Config, error: &Error) -> Result<()> {
-    eprintln!("\x1b[0;31;40mUnable to write style: {}", error);
+    eprintln!("\x1b[0;31;40mError: {}\x1b[0m", error);
     println!("Attempting to recover config");
     match backup.write() {
         Ok(_) => {
@@ -172,8 +188,8 @@ pub fn restore_config(backup: &Config, error: &Error) -> Result<()> {
             Ok(())
         }
         error => {
-            eprintln!("\x1b[0;31;40mUnable to recover config");
-            eprintln!("\x1b[0;31;40mPlease ensure the config is not corrupted");
+            eprintln!("\x1b[0;31;40mUnable to recover config\x1b[0m");
+            eprintln!("\x1b[0;31;40mPlease ensure the config is not corrupted\x1b[0m");
             error
         }
     }
@@ -258,6 +274,7 @@ fn dummy_style() -> Style {
     Style {
         id: 0,
         domain: None,
+        enabled: true,
         uri: String::new(),
         name: String::new(),
         path: PathBuf::new(),

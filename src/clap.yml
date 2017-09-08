@@ -1,5 +1,5 @@
 name: RUM - Rust Userstyle Manager
-version: "0.2.3"
+version: "0.3.0"
 author: Christian Dürr <contact@christianduerr.com>
 about: A userstyle manager for Firefox that uses the userContent.css
 args:
@@ -29,6 +29,11 @@ subcommands:
                 help: Modify the settings of a style
                 short: e
                 long: edit
+            - toggle:
+                help: Enables or disables a style
+                short: t
+                long: toggle
+                conflicts_with: edit
             - STYLE:
                 help: The id or name of the style you want to update
                 multiple: true

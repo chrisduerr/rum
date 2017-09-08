@@ -16,18 +16,22 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     let uris = matches.values_of_lossy("STYLE").unwrap();
 
     for uri in uris {
-        println!("Adding '{}':", uri);
-        add_style(&uri, matches.is_present("userchrome"), None)?;
-        println!("Added style '{}'\n", uri);
+        println!("");
+        add_style(&uri, matches.is_present("userchrome"), None, false)?;
     }
-
-    println!("Added all styles!");
 
     Ok(())
 }
 
 // Add a single style to config and userContent
-pub fn add_style(uri: &str, user_chrome: bool, current_style: Option<Style>) -> Result<()> {
+pub fn add_style(
+    uri: &str,
+    user_chrome: bool,
+    current_style: Option<Style>,
+    config_only: bool,
+) -> Result<()> {
+    println!("Adding '{}':", uri);
+
     // Get current config
     let mut config = Config::load()?;
     let config_backup = config.clone();
@@ -63,6 +67,12 @@ pub fn add_style(uri: &str, user_chrome: bool, current_style: Option<Style>) -> 
     // Save new config
     config.write()?;
 
+    // Return if it should not be added to the target file
+    if config_only {
+        println!("Added style '{}'", uri);
+        return Ok(());
+    }
+
     // Save new File
     let start = config::RUM_START.replace("{}", &id.to_string());
     let end = config::RUM_END.replace("{}", &id.to_string());
@@ -79,6 +89,8 @@ pub fn add_style(uri: &str, user_chrome: bool, current_style: Option<Style>) -> 
         config::restore_config(&config_backup, &Error::from(e))?;
     }
 
+    println!("Added style '{}'", uri);
+
     Ok(())
 }
 
@@ -91,7 +103,7 @@ fn read_text<T: BufRead>(text: &str, input: &mut T) -> String {
     loop {
         let mut choice = String::new();
         if input.read_line(&mut choice).is_err() {
-            eprintln!("\x1b[0;31;40mInvalid input. Please try again.");
+            eprintln!("\x1b[0;31;40mInvalid input. Please try again.\x1b[0m");
             print!(" > ");
             let _ = io::stdout().flush();
         } else {
@@ -180,6 +192,7 @@ fn generic_style<T: BufRead>(
         name,
         domain,
         path,
+        enabled: true,
         uri: uri.to_owned(),
         style_type: StyleType::Local,
         settings: HashMap::new(),
