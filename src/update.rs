@@ -77,14 +77,9 @@ fn update_style(style: &str, edit: bool) -> Result<()> {
     let mut config = Config::load()?;
     let config_backup = config.clone();
 
-    // Get the id of the style that will be updated
-    let id = config
-        .style_id_from_str(style)
-        .ok_or("Invalid style id or name")?;
-
     // Get current style
     let current_style = config
-        .remove_style(id)
+        .remove_style(style)
         .ok_or("Unable to find style in config")?;
 
     // Load initial state of the target file as backup
@@ -101,7 +96,7 @@ fn update_style(style: &str, edit: bool) -> Result<()> {
     let user_chrome = path_str.ends_with("userChrome.css");
 
     // Remove old style
-    remove::remove_style(&id.to_string())?;
+    remove::remove_style(&current_style.id.to_string())?;
 
     let enabled = current_style.enabled;
     // Add new updated style

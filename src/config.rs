@@ -7,9 +7,9 @@ use std::env;
 use READER;
 use toml;
 
-const CONFIG_PATH: &str = ".config/rum.toml";
 pub const RUM_START: &str = "\n/* RUM START {} */\n";
 pub const RUM_END: &str = "\n/* RUM END {} */\n";
+const CONFIG_PATH: &str = ".config/rum.toml";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
@@ -36,6 +36,7 @@ impl Config {
     }
 
     // Load the config file
+    #[cfg(not(test))]
     pub fn load() -> Result<Config> {
         // Create config if it does not exist already
         if !config_exists() {
@@ -52,7 +53,15 @@ impl Config {
         Ok(toml::from_str::<Config>(&content)?)
     }
 
+    // Moch the load method for testing
+    #[cfg(test)]
+    pub fn load() -> Result<Config> {
+        let config = MOCK_CONFIG.lock().unwrap();
+        Ok((*config).clone())
+    }
+
     // Write the current config to the file
+    #[cfg(not(test))]
     pub fn write(&self) -> Result<()> {
         // Convert struct to toml string
         let output = toml::to_string(self)?;
@@ -64,12 +73,28 @@ impl Config {
         Ok(())
     }
 
+    // Mock the write method for testing
+    #[cfg(test)]
+    pub fn write(&self) -> Result<()> {
+        // Convert struct to toml string
+        let output = toml::to_string(self)?;
+
+        // Write to the mock output
+        let mut writer = WRITER.lock().unwrap();
+        writer.write_all(output.as_bytes())?;
+
+        Ok(())
+    }
+
     // Remove a style and return the removed style
-    pub fn remove_style(&mut self, id: i32) -> Option<Style> {
+    // This takes the style's id or name as str
+    pub fn remove_style(&mut self, id_or_name: &str) -> Option<Style> {
+        let id = i32::from_str_radix(id_or_name, 10).unwrap_or(-1);
+
         // Get the index of the style
         let mut index = None;
         for (i, style) in self.styles.iter().enumerate() {
-            if style.id == id {
+            if style.id == id || style.name == id_or_name {
                 index = Some(i);
                 break;
             }
@@ -170,6 +195,24 @@ pub fn config_exists() -> bool {
         path.as_path().exists()
     } else {
         false
+    }
+}
+
+// Attempts to recover an old config
+pub fn restore_config(backup: &Config, error: &Error) -> Result<()> {
+    error!("Error: {}", error);
+    println!("Attempting to recover config");
+    match backup.write() {
+        Ok(_) => {
+            println!("Successfully recovered config");
+            println!("Style has not been added");
+            Ok(())
+        }
+        error => {
+            error!("Unable to recover config");
+            error!("Please ensure the config is not corrupted");
+            error
+        }
     }
 }
 
@@ -278,30 +321,30 @@ fn config_path() -> Result<PathBuf> {
     Ok(path)
 }
 
-// Attempts to recover an old config
-pub fn restore_config(backup: &Config, error: &Error) -> Result<()> {
-    error!("Error: {}", error);
-    println!("Attempting to recover config");
-    match backup.write() {
-        Ok(_) => {
-            println!("Successfully recovered config");
-            println!("Style has not been added");
-            Ok(())
-        }
-        error => {
-            error!("Unable to recover config");
-            error!("Please ensure the config is not corrupted");
-            error
-        }
-    }
-}
-
 
 ////////// TESTS //////////
 
 
 #[cfg(test)]
-fn dummy_style() -> Style {
+use std::sync::{Arc, Mutex};
+
+// Used to replace the File for writing the config
+#[cfg(test)]
+lazy_static! {
+    pub static ref WRITER: Arc<Mutex<Vec<u8>>> = {
+        Arc::new(Mutex::new(Vec::new()))
+    };
+}
+
+#[cfg(test)]
+lazy_static! {
+    pub static ref MOCK_CONFIG: Arc<Mutex<Config>> = {
+        Arc::new(Mutex::new(dummy_config(Vec::new())))
+    };
+}
+
+#[cfg(test)]
+pub fn dummy_style() -> Style {
     Style {
         id: 0,
         domain: None,
@@ -316,7 +359,13 @@ fn dummy_style() -> Style {
 }
 
 #[cfg(test)]
-fn dummy_config(styles: Vec<Style>) -> Config {
+pub fn clear_writer() {
+    let mut writer = WRITER.lock().unwrap();
+    (*writer).clear();
+}
+
+#[cfg(test)]
+pub fn dummy_config(styles: Vec<Style>) -> Config {
     Config {
         chrome_path: String::new(),
         styles: styles,
@@ -450,7 +499,7 @@ fn remove_style__with_id_one__removes_style_one() {
     style_two.id = 2;
     let mut config = dummy_config(vec![style_zero, style_one, style_two]);
 
-    config.remove_style(1);
+    config.remove_style("1");
 
     assert_eq!(config.styles.len(), 2);
     assert_eq!(config.styles[0].id, 0);
@@ -468,7 +517,7 @@ fn remove_style__with_id_one__returns_style_one() {
     style_two.id = 2;
     let mut config = dummy_config(vec![style_zero, style_one, style_two]);
 
-    let result = config.remove_style(1).unwrap();
+    let result = config.remove_style("1").unwrap();
 
     assert_eq!(result.id, 1);
 }
@@ -574,4 +623,37 @@ fn new__with_path__returns_config_with_path() {
     let config = Config::new(path.clone());
 
     assert_eq!(config.chrome_path, path);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn restore_config__without_styles__writes_config() {
+    clear_writer();
+    let config = Config::new(String::from("test"));
+    let err: Error = Error::from("aoeu");
+
+    restore_config(&config, &err).unwrap();
+
+    let writer = WRITER.lock().unwrap();
+    let content = String::from_utf8_lossy(&(*writer));
+    assert_eq!(content, "chrome_path = \"test\"\nstyles = []\n");
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn restore_config__with_style__writes_style() {
+    clear_writer();
+    let style = dummy_style();
+    let config = dummy_config(vec![style]);
+    let err: Error = Error::from("aoeu");
+
+    restore_config(&config, &err).unwrap();
+
+    let expected = "chrome_path = \"\"\n\n[[styles]]\nid = 0\n\
+                    uri = \"\"\nname = \"\"\npath = \"\"\n\
+                    enabled = true\nstyle_type = \"Local\"\n\
+                    \n[styles.settings]\n";
+    let writer = WRITER.lock().unwrap();
+    let content = String::from_utf8_lossy(&(*writer));
+    assert_eq!(content, expected);
 }
