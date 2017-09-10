@@ -18,7 +18,7 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
         if verbose {
             print_verbose(style);
         } else {
-            print(style);
+            print(&style);
         }
     }
 
@@ -26,7 +26,7 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
 }
 
 // Print non-verbose information about a style
-fn print(style: Style) {
+fn print(style: &Style) {
     // Get the ID as a string, this makes formatting easier
     let id_str = ["(", &style.id.to_string(), ")"].concat();
 

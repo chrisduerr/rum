@@ -83,7 +83,9 @@ fn update_style(style: &str, edit: bool) -> Result<()> {
         .ok_or("Invalid style id or name")?;
 
     // Get current style
-    let current_style = config.pop_style(id).ok_or("Unable to find style in config")?;
+    let current_style = config
+        .remove_style(id)
+        .ok_or("Unable to find style in config")?;
 
     // Load initial state of the target file as backup
     let target_path = current_style.path.clone();

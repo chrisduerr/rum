@@ -14,6 +14,12 @@ extern crate reqwest;
 extern crate toml;
 extern crate userstyles;
 
+// Macro for printing red text to stderr
+macro_rules! error {
+    ($fmt:expr) => (eprintln!("\x1b[0;31;40m{}\x1b[0m\n", $fmt));
+    ($fmt:expr, $($arg:tt)*) => (eprintln!($fmt, $($arg)*));
+}
+
 mod add;
 mod list;
 mod remove;
@@ -48,26 +54,13 @@ lazy_static! {
 
 #[cfg(test)]
 lazy_static! {
-    static ref READER: Arc<Mutex<io::BufRead + Send + Sync>> = {
+    static ref READER: Arc<Mutex<io::Cursor<Vec<u8>>>> = {
         Arc::new(Mutex::new(io::Cursor::new(Vec::new())))
-    };
-}
-
-// Macro for printing red text to stderr
-macro_rules! error {
-    ($x:expr) => {
-        eprintln!("\x1b[0;31;40m{}\x1b[0m\n", $x);
     };
 }
 
 quick_main!(run);
 fn run() -> Result<()> {
-    // Create config if it does not exist already
-    if !config::config_exists() {
-        error!("No config file found");
-        config::create_config()?;
-    }
-
     // Parse CLI parameters
     let yaml = load_yaml!("clap.yml");
     let matches = App::from_yaml(yaml).get_matches();
