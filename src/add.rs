@@ -182,7 +182,7 @@ fn generic_style<T: BufRead>(
     // Add new style
     let name = read_name(input);
     let domain = if path.ends_with("userChrome.css") {
-        Some(String::from("url(chrome://browser/content/browser.xul)"))
+        Some(String::from("url(chrome://browser/content/browser.xhtml)"))
     } else {
         read_domain(input)
     };
